@@ -1,0 +1,10 @@
+module output_reg(
+    input clk,
+    input [15:0] y_in,
+    output reg [15:0] y_out
+);
+
+always @(posedge clk)
+    y_out <= y_in;
+
+endmodule
