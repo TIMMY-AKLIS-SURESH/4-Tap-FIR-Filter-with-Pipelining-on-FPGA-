@@ -1,0 +1,62 @@
+module fir_da_4tap(
+    input clk,
+    input rst,
+    input [3:0] x_in,
+    output reg signed [11:0] y_out
+);
+
+reg [3:0] x0, x1, x2, x3;
+
+// Pipeline registers
+reg signed [11:0] stage0, stage1, stage2, stage3;
+
+// LUT
+function signed [5:0] lut;
+    input [3:0] addr;
+    begin
+        case(addr)
+            4'b0000: lut =  0;
+            4'b0001: lut =  2;
+            4'b0010: lut = -4;
+            4'b0011: lut = -2;
+            4'b0100: lut =  1;
+            4'b0101: lut =  3;
+            4'b0110: lut = -3;
+            4'b0111: lut = -1;
+            4'b1000: lut =  2;
+            4'b1001: lut =  4;
+            4'b1010: lut = -2;
+            4'b1011: lut =  0;
+            4'b1100: lut =  3;
+            4'b1101: lut =  5;
+            4'b1110: lut = -1;
+            4'b1111: lut =  1;
+        endcase
+    end
+endfunction
+
+always @(posedge clk or posedge rst) begin
+    if (rst) begin
+        x0 <= 0; x1 <= 0; x2 <= 0; x3 <= 0;
+        stage0 <= 0; stage1 <= 0; stage2 <= 0; stage3 <= 0;
+        y_out <= 0;
+    end
+    else begin
+        // Shift input samples
+        x3 <= x2;
+        x2 <= x1;
+        x1 <= x0;
+        x0 <= x_in;
+
+        // Pipeline stages (bit-serial DA)
+        stage0 <= lut({x3[0], x2[0], x1[0], x0[0]});                  // bit 0
+        stage1 <= stage0 + (lut({x3[1], x2[1], x1[1], x0[1]}) <<< 1); // bit 1
+        stage2 <= stage1 + (lut({x3[2], x2[2], x1[2], x0[2]}) <<< 2); // bit 2
+        stage3 <= stage2 + (lut({x3[3], x2[3], x1[3], x0[3]}) <<< 3); // bit 3
+
+        // Final output
+        y_out <= stage3;
+    end
+end
+
+endmodule
